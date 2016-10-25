@@ -22,16 +22,17 @@ main =
 
 headlessServer : String
 headlessServer =
-  "http://campaign.lab/api/node/article?_format=api_json"
+  --"http://campaign.lab/api/node/article?_format=api_json"
+  "http://localhost:3000/db"
 
 type alias Id = Int
 
 type alias Article =
-  { author : Author
-  , body : String
+  --{ author : Author
+  { body : String
   , id : Id
   --, image : Maybe String
-  , image : String
+  --, image : String
   , label : String
   }
 
@@ -50,16 +51,13 @@ type Status =
 type alias Model =
   { articles : List Article
   , status : Status
+  , error : String
   }
 
 initialModel : Model
 initialModel =
-  Model [ Article (Author 1 "peter") "This is the body" 1 "" "FFirst article" ] Init
-
-sModel : Model
-sModel =
-  Model [ Article (Author 1 "peter") "This is the body" 1 "" "FAILURE article" ] Init
-
+  --Model [ Article (Author 1 "peter") "This is the body" 1 "" "First article" ] Init ""
+  Model [ Article "This is the body" 1 "First article" ] Init ""
 
 init : (Model, Cmd Msg)
 init =
@@ -77,9 +75,9 @@ update msg model =
   case msg of
     FetchAllDone articles->
       -- todo update the status to Done now, not Init anymore
-      (Model articles Init, Cmd.none)
+      (Model articles Init "", Cmd.none)
     FetchAllFail error ->
-      (sModel, Cmd.none)
+      ({model | error = (toString error)}, Cmd.none)
 
 
 fetch : Cmd Msg
@@ -113,19 +111,23 @@ decodeArticle =
       JD.at ["styles"]
         ("thumbnail" := JD.string)
 
+    decodeBody =
+      JD.at ["value"]
+        ("value" := JD.string)
+
   in
-    JD.object5 Article
-      ("user" := decodeAuthor)
+    JD.object3 Article
+      --("user" := decodeAuthor)
       --(JD.oneOf [ "body" := JD.string, JD.succeed "" ])
-      ("body" := JD.string)
-      ("id" := number)
-      ("image" := JD.string)
+      ("body" := ("value" := JD.string))
+      ("nid" := number)
+      --("image" := JD.string)
       --(JD.maybe ("image" := decodeImage))
-      ("label" := JD.string)
+      ("title" := JD.string)
 
 decodeData : JD.Decoder (List Article)
 decodeData =
-  JD.at [ "data" ] <| JD.list <| decodeArticle
+  JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
 
 
 
@@ -142,6 +144,7 @@ view model =
   div []
     [ h2 [] [ text "Latest articles" ]
     , viewArticles model.articles
+    , div [] [ text model.error ]
     ]
 
 viewArticles : List Article -> Html Msg

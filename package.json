@@ -1,0 +1,23 @@
+{
+  "name": "elm-headless",
+  "version": "1.0.0",
+  "description": "Trial repo for building an Elm app",
+  "main": "api.js",
+  "dependencies": {
+    "json-server": "^0.8.22"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "api": "node api.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pvhee/elm-headless.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pvhee/elm-headless/issues"
+  },
+  "homepage": "https://github.com/pvhee/elm-headless#readme"
+}
