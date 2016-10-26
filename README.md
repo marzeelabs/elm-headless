@@ -7,4 +7,6 @@ Start the JSON server
 
 	node_modules/json-server/bin/index.js --watch db.json
 
-Run `elm-reactor`
+Start the web app (in a dev server)
+
+	npm run dev
