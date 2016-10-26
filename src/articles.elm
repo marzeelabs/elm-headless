@@ -6,6 +6,8 @@ import Time exposing (Time)
 import Json.Decode as JD exposing ((:=))
 import String exposing (toInt, toFloat)
 import Task
+import Date exposing (..)
+import Date.Format
 
 
 -- MAIN
@@ -23,7 +25,7 @@ main =
 headlessServer : String
 headlessServer =
   --"http://campaign.lab/api/node/article?_format=api_json"
-  "http://localhost:3000/db"
+  "http://localhost:4000/db"
 
 type alias Id = Int
 
@@ -34,6 +36,7 @@ type alias Article =
   --, image : Maybe String
   --, image : String
   , label : String
+  , created: Float
   }
 
 type alias Author =
@@ -56,8 +59,7 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-  --Model [ Article (Author 1 "peter") "This is the body" 1 "" "First article" ] Init ""
-  Model [ Article "This is the body" 1 "First article" ] Init ""
+  Model [ Article "This is the body" 1 "First article" 0 ] Init ""
 
 init : (Model, Cmd Msg)
 init =
@@ -115,8 +117,13 @@ decodeArticle =
       JD.at ["value"]
         ("value" := JD.string)
 
+    --decodeTime : JD.Decoder Date
+    --decodeTime =
+      --JD.customDecoder JD.string Date.fromTime
+
+
   in
-    JD.object3 Article
+    JD.object4 Article
       --("user" := decodeAuthor)
       --(JD.oneOf [ "body" := JD.string, JD.succeed "" ])
       ("body" := ("value" := JD.string))
@@ -124,6 +131,7 @@ decodeArticle =
       --("image" := JD.string)
       --(JD.maybe ("image" := decodeImage))
       ("title" := JD.string)
+      ("created" := numberFloat)
 
 decodeData : JD.Decoder (List Article)
 decodeData =
@@ -138,6 +146,11 @@ subscriptions model =
   Sub.none
 
 -- VIEW
+
+formatDate: Float -> String
+formatDate timestamp =
+  timestamp * 1000 |> Date.fromTime |> Date.Format.format "%A, %e %B"
+
 
 view : Model -> Html Msg
 view model =
@@ -155,4 +168,8 @@ viewArticles articles =
 viewArticle : Article -> Html Msg
 viewArticle article =
   li []
-    [ text article.label ]
+    [ div []
+      [ text article.label ]
+    , div []
+      [ text ("Created:" ++ (article.created |> formatDate ) ) ]
+    ]
