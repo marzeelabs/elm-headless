@@ -3,10 +3,10 @@ Trial repo for building an Elm app
 
 ## How to start
 
-Start the JSON server
+Start the JSON server (`http://localhost:4000`)
 
-	node_modules/json-server/bin/index.js --watch db.json
+	npm run api
 
-Start the web app (in a dev server)
+Start the web app (`http://localhost:3000`)
 
 	npm run dev
