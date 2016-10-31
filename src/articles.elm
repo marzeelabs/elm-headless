@@ -75,15 +75,12 @@ type alias WebData a =
 
 
 type alias Model =
-    { articles : WebData (List Article)
-    , status : Status
-    , error : String
-    }
+    { articles : WebData (List Article) }
 
 
 initialModel : Model
 initialModel =
-    Model NotAsked Init ""
+    Model NotAsked
 
 
 init : ( Model, Cmd Msg )
@@ -104,11 +101,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FetchAllDone articles ->
-            -- todo update the status to Done now, not Init anymore
-            ( Model (Success articles) Init "", Cmd.none )
+            ( Model (Success articles), Cmd.none )
 
         FetchAllFail error ->
-            ( { model | error = (toString error) }, Cmd.none )
+            ( Model (Failure error), Cmd.none )
 
 
 fetch : Cmd Msg
@@ -183,7 +179,6 @@ view model =
     div []
         [ h2 [] [ text "Latest articles" ]
         , viewArticles model.articles
-        , div [] [ text model.error ]
         ]
 
 
@@ -197,7 +192,7 @@ viewArticles articles =
             div [] [ text "Loading data..." ]
 
         Failure error ->
-            div [] [ text (toString error) ]
+            div [] [ text ("Error loading data: " ++ (toString error)) ]
 
         Success articles ->
             ul []
