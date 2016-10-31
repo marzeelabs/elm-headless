@@ -10,6 +10,7 @@ import String exposing (toInt, toFloat)
 import Task
 import Date exposing (..)
 import Date.Format
+import RemoteData exposing (RemoteData(..), WebData)
 
 
 -- MAIN
@@ -47,45 +48,23 @@ type alias Article =
     }
 
 
+type alias Articles =
+    List Article
+
+
 type alias Author =
     { id : Id
     , name : String
     }
 
 
-type Status
-    = Init
-
-
-
---| Fetching
---| Fetched Time.Time
---| HttpError Http.Error
-
-
-type RemoteData e a
-    = NotAsked
-    | Loading
-    | Failure e
-    | Success a
-
-
-type alias WebData a =
-    RemoteData Http.Error a
-
-
 type alias Model =
-    { articles : WebData (List Article) }
-
-
-initialModel : Model
-initialModel =
-    Model NotAsked
+    { articles : WebData Articles }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( initialModel, fetch )
+    ( Model NotAsked, fetch )
 
 
 
@@ -93,7 +72,7 @@ init =
 
 
 type Msg
-    = FetchAllDone (List Article)
+    = FetchAllDone Articles
     | FetchAllFail Http.Error
 
 
@@ -156,7 +135,7 @@ decodeArticle =
             ("created" := numberFloat)
 
 
-decodeData : JD.Decoder (List Article)
+decodeData : JD.Decoder Articles
 decodeData =
     JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
 
@@ -182,7 +161,7 @@ view model =
         ]
 
 
-viewArticles : WebData (List Article) -> Html Msg
+viewArticles : WebData Articles -> Html Msg
 viewArticles articles =
     case articles of
         NotAsked ->
