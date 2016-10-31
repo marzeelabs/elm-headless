@@ -72,24 +72,21 @@ init =
 
 
 type Msg
-    = FetchAllDone Articles
-    | FetchAllFail Http.Error
+    = FetchResponse (WebData Articles)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FetchAllDone articles ->
-            ( Model (Success articles), Cmd.none )
-
-        FetchAllFail error ->
-            ( Model (Failure error), Cmd.none )
+        FetchResponse response ->
+            ( Model response, Cmd.none )
 
 
 fetch : Cmd Msg
 fetch =
     Http.get decodeData headlessServer
-        |> Task.perform FetchAllFail FetchAllDone
+        |> RemoteData.asCmd
+        |> Cmd.map FetchResponse
 
 
 
@@ -164,18 +161,18 @@ view model =
 viewArticles : WebData Articles -> Html Msg
 viewArticles articles =
     case articles of
+        Success articles ->
+            ul []
+                (List.map viewArticle articles)
+
+        Failure error ->
+            div [] [ text ("Error loading data: " ++ (toString error)) ]
+
         NotAsked ->
             div [] [ text "Not asked yet" ]
 
         Loading ->
             div [] [ text "Loading data..." ]
-
-        Failure error ->
-            div [] [ text ("Error loading data: " ++ (toString error)) ]
-
-        Success articles ->
-            ul []
-                (List.map viewArticle articles)
 
 
 viewArticle : Article -> Html Msg
