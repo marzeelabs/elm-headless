@@ -1,3 +1,5 @@
+module Main exposing (..)
+
 import Http
 import Html exposing (Html, h1, h2, button, div, text, ul, li)
 import Html.App as Html
@@ -12,74 +14,101 @@ import Date.Format
 
 -- MAIN
 
+
 main =
-  Html.program
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    }
+    Html.program
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
+
 
 -- MODEL
 
+
 headlessServer : String
 headlessServer =
-  --"http://campaign.lab/api/node/article?_format=api_json"
-  "http://localhost:4000/db"
+    --"http://campaign.lab/api/node/article?_format=api_json"
+    "http://localhost:4000/db"
 
-type alias Id = Int
+
+type alias Id =
+    Int
+
 
 type alias Article =
-  --{ author : Author
-  { body : String
-  , id : Id
-  --, image : Maybe String
-  --, image : String
-  , label : String
-  , created: Float
-  }
+    --{ author : Author
+    { body : String
+    , id : Id
+    , label : String
+    , created : Float
+    }
+
 
 type alias Author =
-  { id : Id
-  , name : String
-  }
+    { id : Id
+    , name : String
+    }
 
-type Status =
-  Init
-  --| Fetching
-  --| Fetched Time.Time
-  --| HttpError Http.Error
+
+type Status
+    = Init
+
+
+
+--| Fetching
+--| Fetched Time.Time
+--| HttpError Http.Error
+
+
+type RemoteData e a
+    = NotAsked
+    | Loading
+    | Failure e
+    | Success a
+
+
+type alias WebData a =
+    RemoteData Http.Error a
 
 
 type alias Model =
-  { articles : List Article
-  , status : Status
-  , error : String
-  }
+    { articles : WebData (List Article)
+    , status : Status
+    , error : String
+    }
+
 
 initialModel : Model
 initialModel =
-  Model [ Article "This is the body" 1 "First article" 0 ] Init ""
+    Model NotAsked Init ""
 
-init : (Model, Cmd Msg)
+
+init : ( Model, Cmd Msg )
 init =
-  (initialModel, fetch)
+    ( initialModel, fetch )
+
+
 
 -- UPDATE
 
+
 type Msg
-  = FetchAllDone (List Article)
-  | FetchAllFail Http.Error
+    = FetchAllDone (List Article)
+    | FetchAllFail Http.Error
 
 
-update: Msg -> Model -> (Model, Cmd Msg)
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    FetchAllDone articles->
-      -- todo update the status to Done now, not Init anymore
-      (Model articles Init "", Cmd.none)
-    FetchAllFail error ->
-      ({model | error = (toString error)}, Cmd.none)
+    case msg of
+        FetchAllDone articles ->
+            -- todo update the status to Done now, not Init anymore
+            ( Model (Success articles) Init "", Cmd.none )
+
+        FetchAllFail error ->
+            ( { model | error = (toString error) }, Cmd.none )
 
 
 fetch : Cmd Msg
@@ -87,89 +116,104 @@ fetch =
     Http.get decodeData headlessServer
         |> Task.perform FetchAllFail FetchAllDone
 
+
+
 -- DECODERS
+
 
 decodeArticle : JD.Decoder Article
 decodeArticle =
-  let
-    -- Cast String to Int.
-    number : JD.Decoder Int
-    number =
-      JD.oneOf [ JD.int, JD.customDecoder JD.string String.toInt ]
+    let
+        -- Cast String to Int.
+        number : JD.Decoder Int
+        number =
+            JD.oneOf [ JD.int, JD.customDecoder JD.string String.toInt ]
 
-    numberFloat : JD.Decoder Float
-    numberFloat =
-      JD.oneOf [ JD.float, JD.customDecoder JD.string String.toFloat ]
+        numberFloat : JD.Decoder Float
+        numberFloat =
+            JD.oneOf [ JD.float, JD.customDecoder JD.string String.toFloat ]
 
-    decodeId =
-      JD.at [""]
+        decodeId =
+            JD.at [ "" ]
 
-    decodeAuthor =
-      JD.object2 Author
-        ("id" := number)
-        ("label" := JD.string)
+        decodeAuthor =
+            JD.object2 Author
+                ("id" := number)
+                ("label" := JD.string)
 
-    decodeImage =
-      JD.at ["styles"]
-        ("thumbnail" := JD.string)
+        decodeImage =
+            JD.at [ "styles" ]
+                ("thumbnail" := JD.string)
 
-    decodeBody =
-      JD.at ["value"]
-        ("value" := JD.string)
+        --decodeTime : JD.Decoder Date
+        --decodeTime =
+        --JD.customDecoder JD.string Date.fromTime
+    in
+        JD.object4 Article
+            --("user" := decodeAuthor)
+            --(JD.oneOf [ "body" := JD.string, JD.succeed "" ])
+            ("body" := ("value" := JD.string))
+            ("nid" := number)
+            --("image" := JD.string)
+            --(JD.maybe ("image" := decodeImage))
+            ("title" := JD.string)
+            ("created" := numberFloat)
 
-    --decodeTime : JD.Decoder Date
-    --decodeTime =
-      --JD.customDecoder JD.string Date.fromTime
-
-
-  in
-    JD.object4 Article
-      --("user" := decodeAuthor)
-      --(JD.oneOf [ "body" := JD.string, JD.succeed "" ])
-      ("body" := ("value" := JD.string))
-      ("nid" := number)
-      --("image" := JD.string)
-      --(JD.maybe ("image" := decodeImage))
-      ("title" := JD.string)
-      ("created" := numberFloat)
 
 decodeData : JD.Decoder (List Article)
 decodeData =
-  JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
+    JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
 
 
 
 -- SUBSCRIPTIONS
 
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+    Sub.none
+
+
 
 -- VIEW
-
-formatDate: Float -> String
-formatDate timestamp =
-  timestamp * 1000 |> Date.fromTime |> Date.Format.format "%A, %e %B"
 
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ h2 [] [ text "Latest articles" ]
-    , viewArticles model.articles
-    , div [] [ text model.error ]
-    ]
+    div []
+        [ h2 [] [ text "Latest articles" ]
+        , viewArticles model.articles
+        , div [] [ text model.error ]
+        ]
 
-viewArticles : List Article -> Html Msg
+
+viewArticles : WebData (List Article) -> Html Msg
 viewArticles articles =
-  ul []
-    (List.map viewArticle articles)
+    case articles of
+        NotAsked ->
+            div [] [ text "Not asked yet" ]
+
+        Loading ->
+            div [] [ text "Loading data..." ]
+
+        Failure error ->
+            div [] [ text (toString error) ]
+
+        Success articles ->
+            ul []
+                (List.map viewArticle articles)
+
 
 viewArticle : Article -> Html Msg
 viewArticle article =
-  li []
-    [ div []
-      [ text article.label ]
-    , div []
-      [ text ("Created:" ++ (article.created |> formatDate ) ) ]
-    ]
+    li []
+        [ div []
+            [ text article.label ]
+        , div []
+            [ text ("Created:" ++ (article.created |> formatDate)) ]
+        ]
+
+
+formatDate : Float -> String
+formatDate timestamp =
+    timestamp * 1000 |> Date.fromTime |> Date.Format.format "%A, %e %B"
