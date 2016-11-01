@@ -1,5 +1,13 @@
 # elm-headless
-Trial repo for building an Elm app
+Trial repo for building an Elm app. Currently, this displays a list of articles from a (fake) JSON back-end.
+
+## Installation
+
+	npm install
+
+and then
+
+	elm-package install
 
 ## How to start
 
