@@ -1,7 +1,8 @@
 module Main exposing (..)
 
 import Http
-import Html exposing (Html, h1, h2, button, div, text, ul, li)
+import Html exposing (Html, h1, h2, button, div, text, ul, li, i)
+import Html.Attributes exposing (class, href, src, style, target)
 import Html.App as Html
 import Html.Events exposing (onClick)
 import Time exposing (Time)
@@ -39,6 +40,12 @@ type alias Id =
     Int
 
 
+type alias Author =
+    { id : Id
+    , name : String
+    }
+
+
 type alias Article =
     --{ author : Author
     { body : String
@@ -50,12 +57,6 @@ type alias Article =
 
 type alias Articles =
     List Article
-
-
-type alias Author =
-    { id : Id
-    , name : String
-    }
 
 
 type alias Model =
@@ -152,7 +153,7 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ class "ui container main" ]
         [ h2 [] [ text "Latest articles" ]
         , viewArticles model.articles
         ]
@@ -162,8 +163,7 @@ viewArticles : WebData Articles -> Html Msg
 viewArticles articles =
     case articles of
         Success articles ->
-            ul []
-                (List.map viewArticle articles)
+            div [ class "ui list" ] (List.map viewArticle articles)
 
         Failure error ->
             div [] [ text ("Error loading data: " ++ (toString error)) ]
@@ -177,11 +177,10 @@ viewArticles articles =
 
 viewArticle : Article -> Html Msg
 viewArticle article =
-    li []
-        [ div []
-            [ text article.label ]
-        , div []
-            [ text ("Created:" ++ (article.created |> formatDate)) ]
+    div [ class "item" ]
+        [ div [ class "header" ] [ text article.label ]
+        , i [ class "calendar outline icon" ] []
+        , div [ class "content" ] [ text (article.created |> formatDate) ]
         ]
 
 
