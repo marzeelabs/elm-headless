@@ -1,12 +1,13 @@
 module Main exposing (..)
 
 import Http
-import Html exposing (Html, h1, h2, button, div, text, ul, li, i)
-import Html.Attributes exposing (class, href, src, style, target)
+import Html exposing (..)
+import Html.Attributes exposing (..)
 import Html.App as Html
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onSubmit, onInput)
 import Time exposing (Time)
 import Json.Decode as JD exposing ((:=))
+import Json.Encode as JE exposing (string, int)
 import String exposing (toInt, toFloat)
 import Task
 import Date exposing (..)
@@ -58,14 +59,17 @@ type alias Article =
 type alias Articles =
     List Article
 
+type alias ArticleForm =
+    { title : String }
 
 type alias Model =
-    { articles : WebData Articles }
-
+    { articles : WebData Articles
+    , articleForm : ArticleForm
+    }
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model Loading, fetch )
+    ( Model Loading (ArticleForm ""), fetch )
 
 
 
@@ -74,13 +78,23 @@ init =
 
 type Msg
     = FetchResponse (WebData Articles)
+    | TryPost
+    | PrintJSON String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FetchResponse response ->
-            ( Model response, Cmd.none )
+            ({model | articles = response}, Cmd.none )
+        TryPost ->
+            -- todo: send out the command for an actual POST request
+            (model, Cmd.none)
+        PrintJSON title ->
+            let
+                form = ArticleForm title
+            in
+                ({model | articleForm = form}, Cmd.none)
 
 
 fetch : Cmd Msg
@@ -89,10 +103,35 @@ fetch =
         |> RemoteData.asCmd
         |> Cmd.map FetchResponse
 
+--post : Cmd Msg
+--post =
+--    Http.post encodeDate headlessServer
 
 
--- DECODERS
+-- ENCODERS / DECODERS
 
+dataToJson : ArticleForm -> String
+dataToJson data =
+    JE.encode 4
+        <| JE.object
+            [ ("data", encodeData <| data)
+            ]
+
+encodeData data =
+    JE.object
+        [ ("type", string "node--article")
+        , ("attributes", encodeAttributes <| data)
+        ]
+
+encodeAttributes data =
+    JE.object
+        [ ("title", string data.title)
+        , ("status", int 1)
+        ]
+
+decodeData : JD.Decoder Articles
+decodeData =
+    JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
 
 decodeArticle : JD.Decoder Article
 decodeArticle =
@@ -117,10 +156,6 @@ decodeArticle =
         decodeImage =
             JD.at [ "styles" ]
                 ("thumbnail" := JD.string)
-
-        --decodeTime : JD.Decoder Date
-        --decodeTime =
-        --JD.customDecoder JD.string Date.fromTime
     in
         JD.object4 Article
             --("user" := decodeAuthor)
@@ -131,12 +166,6 @@ decodeArticle =
             --(JD.maybe ("image" := decodeImage))
             ("title" := JD.string)
             ("created" := numberFloat)
-
-
-decodeData : JD.Decoder Articles
-decodeData =
-    JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
-
 
 
 -- SUBSCRIPTIONS
@@ -153,9 +182,12 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "ui container main" ]
-        [ h2 [] [ text "Latest articles" ]
+    div [ ]
+        [ h2 [ class "ui dividing header" ] [ text "Latest articles" ]
         , viewArticles model.articles
+        , h2 [ class "ui dividing header" ] [ text "Add new article" ]
+        , viewForm model.articleForm.title
+        , viewDebugJson model.articleForm
         ]
 
 
@@ -166,7 +198,7 @@ viewArticles articles =
             div [ class "ui list" ] (List.map viewArticle articles)
 
         Failure error ->
-            div [] [ text ("Error loading data: " ++ (toString error)) ]
+            div [] [ text ("Error loading data. Tip: make sure to run 'npm run api'. Message: " ++ (toString error)) ]
 
         NotAsked ->
             div [] [ text "Not asked yet" ]
@@ -183,6 +215,22 @@ viewArticle article =
         , div [ class "content" ] [ text (article.created |> formatDate) ]
         ]
 
+viewForm : String -> Html Msg
+viewForm title =
+    Html.form
+        [ onSubmit TryPost ]
+        [ input
+            [ type' "text"
+            , placeholder "Title for a new article.."
+            , onInput PrintJSON
+            , value title
+            ]
+            []
+        ]
+
+viewDebugJson : ArticleForm -> Html Msg
+viewDebugJson data =
+    code [] [ text (data |> dataToJson) ]
 
 formatDate : Float -> String
 formatDate timestamp =
