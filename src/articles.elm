@@ -33,8 +33,9 @@ main =
 
 headlessServer : String
 headlessServer =
-    --"http://campaign.lab/api/node/article?_format=api_json"
-    "http://localhost:4000/db"
+    "http://campaign.lab/api/node/article?_format=api_json"
+    --"http://localhost:4000/db"
+    --"http://pr-572-72aemkq-tx3mbsqmxtu74.eu.platform.sh/api/node/article?_format=api_json"
 
 
 type alias Id =
@@ -49,7 +50,7 @@ type alias Author =
 
 type alias Article =
     --{ author : Author
-    { body : String
+    { body : Maybe String
     , id : Id
     , label : String
     , created : Float
@@ -130,6 +131,7 @@ encodeAttributes data =
         ]
 
 decodeData : JD.Decoder Articles
+
 decodeData =
     JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
 
@@ -158,9 +160,8 @@ decodeArticle =
                 ("thumbnail" := JD.string)
     in
         JD.object4 Article
-            --("user" := decodeAuthor)
             --(JD.oneOf [ "body" := JD.string, JD.succeed "" ])
-            ("body" := ("value" := JD.string))
+            (JD.maybe ("body" := ("value" := JD.string)))
             ("nid" := number)
             --("image" := JD.string)
             --(JD.maybe ("image" := decodeImage))
