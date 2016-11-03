@@ -213,7 +213,7 @@ viewArticle article =
     let
         body =
             case article.body of
-                Nothing -> text "..."
+                Nothing -> text ".."
                 Just val -> text val
     in
         --div []
