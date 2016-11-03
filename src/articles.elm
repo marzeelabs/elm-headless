@@ -33,9 +33,9 @@ main =
 
 headlessServer : String
 headlessServer =
-    "http://campaign.lab/api/node/article?_format=api_json"
+    --"http://campaign.lab/api/node/article?_format=api_json"
     --"http://localhost:4000/db"
-    --"http://pr-572-72aemkq-tx3mbsqmxtu74.eu.platform.sh/api/node/article?_format=api_json"
+    "http://pr-572-72aemkq-tx3mbsqmxtu74.eu.platform.sh/api/node/article?_format=api_json"
 
 
 type alias Id =
