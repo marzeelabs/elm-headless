@@ -205,16 +205,33 @@ viewArticles articles =
             div [] [ text "Not asked yet" ]
 
         Loading ->
-            div [] [ text "Loading data..." ]
+            div [ class "ui active centered inline loader" ] []
 
 
 viewArticle : Article -> Html Msg
 viewArticle article =
-    div [ class "item" ]
-        [ div [ class "header" ] [ text article.label ]
-        , i [ class "calendar outline icon" ] []
-        , div [ class "content" ] [ text (article.created |> formatDate) ]
-        ]
+    let
+        body =
+            case article.body of
+                Nothing -> text "..."
+                Just val -> text val
+    in
+        --div []
+        --    [ div [ class "title" ]
+        --        [ i [ class "dropdown icon" ] []
+        --        , i [ class "calendar outline icon" ] []
+        --        , text (article.created |> formatDate)
+        --        , text " - "
+        --        , text article.label
+        --        ]
+        --    , div [ class "content" ] [ body ]
+        --    ]
+        div [ class "item" ]
+            [ div [ class "header" ] [ text article.label ]
+            , i [ class "calendar outline icon" ] []
+            , div [ class "content" ] [ text (article.created |> formatDate) ]
+            , body
+            ]
 
 viewForm : String -> Html Msg
 viewForm title =
