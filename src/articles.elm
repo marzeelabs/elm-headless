@@ -66,11 +66,12 @@ type alias ArticleForm =
 type alias Model =
     { articles : WebData Articles
     , articleForm : ArticleForm
+    , error : String
     }
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model Loading (ArticleForm ""), fetch )
+    ( Model Loading (ArticleForm "") "", fetch )
 
 
 
@@ -80,22 +81,29 @@ init =
 type Msg
     = FetchResponse (WebData Articles)
     | TryPost
-    | PrintJSON String
+    | UpdateTitle String
+    | FetchFail Http.Error
+    | FetchSucceed Articles
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FetchResponse response ->
-            ({model | articles = response}, Cmd.none )
+            ({model | articles = response}, Cmd.none)
         TryPost ->
-            -- todo: send out the command for an actual POST request
-            (model, Cmd.none)
-        PrintJSON title ->
+            (model, post model.articleForm)
+        UpdateTitle title ->
             let
                 form = ArticleForm title
             in
                 ({model | articleForm = form}, Cmd.none)
+        FetchSucceed reply ->
+            --({model | articles = reply}, Cmd.none)
+            ({model | articleForm = (ArticleForm "success")}, Cmd.none)
+        FetchFail error ->
+            ({model | error = (toString error), articleForm = (ArticleForm "bllllll")}, Cmd.none)
+            --(model, Cmd.none)
 
 
 fetch : Cmd Msg
@@ -104,16 +112,34 @@ fetch =
         |> RemoteData.asCmd
         |> Cmd.map FetchResponse
 
---post : Cmd Msg
---post =
---    Http.post encodeDate headlessServer
+-- A custom POST request so we can pass in headers as required by Drupal 8
+postRequest : ArticleForm -> Http.Request
+postRequest data =
+    { verb = "POST"
+    , headers =
+        [ ("Origin", "http://localhost:3000")
+        , ("Content-Type", "application/vnd.api+json")
+        , ("Access-Control-Request-Method", "POST")
+        , ("Access-Control-Request-Headers", "X-Custom-Header")
+        , ("Authorization", "Basic YWRtaW46YWRtaW4=")
+        ]
+    , url = headlessServer
+    , body = (Http.string (dataToJson data))
+    }
 
+post : ArticleForm -> Cmd Msg
+post data =
+    Http.send Http.defaultSettings (postRequest data)
+        |> Http.fromJson decodeData
+        |> Task.perform FetchFail FetchSucceed
+
+--decodeResponse : Http.Response -> 
 
 -- ENCODERS / DECODERS
 
 dataToJson : ArticleForm -> String
 dataToJson data =
-    JE.encode 4
+    JE.encode 0
         <| JE.object
             [ ("data", encodeData <| data)
             ]
@@ -131,7 +157,6 @@ encodeAttributes data =
         ]
 
 decodeData : JD.Decoder Articles
-
 decodeData =
     JD.at [ "data" ] <| JD.list <| JD.at [ "attributes" ] <| decodeArticle
 
@@ -184,11 +209,12 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ ]
-        [ h2 [ class "ui dividing header" ] [ text "Latest articles" ]
-        , viewArticles model.articles
-        , h2 [ class "ui dividing header" ] [ text "Add new article" ]
+        [ h2 [ class "ui dividing header" ] [ text "Add new article" ]
         , viewForm model.articleForm.title
         , viewDebugJson model.articleForm
+        , div [ class "error" ] [ text model.error ]
+        , h2 [ class "ui dividing header" ] [ text "Latest articles" ]
+        , viewArticles model.articles
         ]
 
 
@@ -240,7 +266,7 @@ viewForm title =
         [ input
             [ type' "text"
             , placeholder "Title for a new article.."
-            , onInput PrintJSON
+            , onInput UpdateTitle
             , value title
             ]
             []
