@@ -13,7 +13,7 @@ viewForm title =
         [ onSubmit TryPost ]
         [ input
             [ type' "text"
-            , placeholder "Title for a new article.."
+            , placeholder "Title for a new article (WIP).."
             , onInput UpdateTitle
             , value title
             ]
